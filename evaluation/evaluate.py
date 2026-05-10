@@ -49,7 +49,7 @@ def create_synthetic_dataset(n: int = 500, seed: int = 42) -> pd.DataFrame:
         "BENIGN", "DoS Hulk", "DoS GoldenEye",
         "DoS slowloris", "DoS Slowhttptest", "Heartbleed"
     ]
-    weights = [0.40, 0.35, 0.10, 0.06, 0.06, 0.03]
+    weights = [0.15, 0.40, 0.15, 0.10, 0.10, 0.10]
     labels = np.random.choice(classes, size=n, p=weights)
 
     records = []
