@@ -48,7 +48,7 @@ def get_llm():
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key or api_key == "your_groq_api_key_here":
         raise ValueError("GROQ_API_KEY not set. Get a free key at https://console.groq.com")
-    return ChatGroq(model="llama-3.3-70b-versatile", temperature=0.0,
+    return ChatGroq(model="llama-3.1-8b-instant", temperature=0.0,
                     max_tokens=2000, groq_api_key=api_key)
 
 

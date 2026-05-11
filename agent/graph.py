@@ -14,7 +14,7 @@ from agent.tools import (
     tool_report_generator,
 )
 import pandas as pd
-
+import time
 
 class AgentState(TypedDict):
     raw_row: dict
@@ -36,6 +36,7 @@ def node_log_analyzer(state: AgentState) -> AgentState:
 
 
 def node_threat_classifier(state: AgentState) -> AgentState:
+    time.sleep(2)
     try:
         parsed = state["parsed_log"]
         state["classification"] = tool_threat_classifier(

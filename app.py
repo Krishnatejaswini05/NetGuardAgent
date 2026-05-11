@@ -50,7 +50,7 @@ st.markdown("""
     .stButton > button:hover { background: #388bfd; border: none; }
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
-    header { visibility: hidden; }
+    #header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -313,7 +313,8 @@ if "🔍" in page:
                     "*Author: Krishna Tejaswini Paleti*\n"
                 )
 
-                col_a, col_b = st.columns(2)
+                col_a, col_b, col_c = st.columns(3)
+
                 with col_a:
                     st.download_button(
                         label="📄 Download as TXT",
@@ -322,6 +323,7 @@ if "🔍" in page:
                         mime="text/plain",
                         use_container_width=True,
                     )
+
                 with col_b:
                     st.download_button(
                         label="📝 Download as Markdown",
@@ -330,6 +332,195 @@ if "🔍" in page:
                         mime="text/markdown",
                         use_container_width=True,
                     )
+
+                with col_c:
+                    # Generate PDF
+                    try:
+                        from reportlab.lib.pagesizes import letter
+                        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                        from reportlab.lib.units import inch
+                        from reportlab.lib.colors import HexColor
+                        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+                        from reportlab.lib.enums import TA_LEFT, TA_CENTER
+                        import io as _io
+
+                        pdf_buf = _io.BytesIO()
+                        doc = SimpleDocTemplate(
+                            pdf_buf,
+                            pagesize=letter,
+                            rightMargin=0.75*inch,
+                            leftMargin=0.75*inch,
+                            topMargin=0.75*inch,
+                            bottomMargin=0.75*inch
+                        )
+
+                        # Colors
+                        DARK_BG   = HexColor("#0d1117")
+                        ACCENT    = HexColor("#1f6feb")
+                        TEXT_MAIN = HexColor("#e6edf3")
+                        TEXT_GRAY = HexColor("#8b949e")
+                        RED       = HexColor("#f85149")
+                        ORANGE    = HexColor("#ffa657")
+                        GREEN     = HexColor("#56d364")
+
+                        sev_color = {"Critical": RED, "High": ORANGE, "Medium": HexColor("#e3b341"), "Low": GREEN}.get(severity, TEXT_GRAY)
+
+                        styles = getSampleStyleSheet()
+
+                        style_title = ParagraphStyle("title",
+                            fontSize=22, fontName="Helvetica-Bold",
+                            textColor=ACCENT, spaceAfter=4, alignment=TA_CENTER)
+
+                        style_subtitle = ParagraphStyle("subtitle",
+                            fontSize=10, fontName="Helvetica",
+                            textColor=TEXT_GRAY, spaceAfter=2, alignment=TA_CENTER)
+
+                        style_section = ParagraphStyle("section",
+                            fontSize=13, fontName="Helvetica-Bold",
+                            textColor=ACCENT, spaceBefore=16, spaceAfter=6)
+
+                        style_body = ParagraphStyle("body",
+                            fontSize=10, fontName="Helvetica",
+                            textColor=HexColor("#000000"),
+                            spaceAfter=6, leading=15)
+
+                        style_mono = ParagraphStyle("mono",
+                            fontSize=8, fontName="Courier",
+                            textColor=HexColor("#333333"),
+                            spaceAfter=4, leading=12)
+
+                        style_label = ParagraphStyle("label",
+                            fontSize=9, fontName="Helvetica-Bold",
+                            textColor=TEXT_GRAY, spaceAfter=2)
+
+                        elements = []
+
+                        # Header
+                        elements.append(Paragraph("🛡️ NetGuardAgent", style_title))
+                        elements.append(Paragraph("Incident Report — Automated Network Intrusion Detection", style_subtitle))
+                        elements.append(Paragraph("CS 6349.501 Network Security · University of Texas at Dallas · Krishna Tejaswini Paleti", style_subtitle))
+                        elements.append(Spacer(1, 12))
+                        elements.append(HRFlowable(width="100%", thickness=2, color=ACCENT))
+                        elements.append(Spacer(1, 12))
+
+                        # Detection summary table
+                        summary_data = [
+                            ["Attack Type", "Severity", "Confidence", "True Label"],
+                            [label, severity, confidence, true_lbl],
+                        ]
+                        summary_table = Table(summary_data, colWidths=[1.7*inch, 1.4*inch, 1.4*inch, 1.4*inch])
+                        summary_table.setStyle(TableStyle([
+                            ("BACKGROUND",    (0,0), (-1,0), ACCENT),
+                            ("TEXTCOLOR",     (0,0), (-1,0), HexColor("#ffffff")),
+                            ("FONTNAME",      (0,0), (-1,0), "Helvetica-Bold"),
+                            ("FONTSIZE",      (0,0), (-1,0), 10),
+                            ("BACKGROUND",    (0,1), (-1,1), HexColor("#f0f4f8")),
+                            ("TEXTCOLOR",     (1,1), (1,1), sev_color),
+                            ("FONTNAME",      (0,1), (-1,1), "Helvetica-Bold"),
+                            ("FONTSIZE",      (0,1), (-1,1), 11),
+                            ("ALIGN",         (0,0), (-1,-1), "CENTER"),
+                            ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+                            ("ROWBACKGROUND", (0,0), (-1,-1), [ACCENT, HexColor("#f0f4f8")]),
+                            ("GRID",          (0,0), (-1,-1), 0.5, HexColor("#cccccc")),
+                            ("TOPPADDING",    (0,0), (-1,-1), 8),
+                            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+                            ("ROUNDEDCORNERS",(0,0), (-1,-1), [4,4,4,4]),
+                        ]))
+                        elements.append(summary_table)
+                        elements.append(Spacer(1, 16))
+
+                        # Classifier reasoning
+                        elements.append(Paragraph("Classifier Reasoning", style_section))
+                        elements.append(HRFlowable(width="100%", thickness=0.5, color=HexColor("#cccccc")))
+                        elements.append(Spacer(1, 6))
+                        elements.append(Paragraph(clf.get("reason","N/A"), style_body))
+                        elements.append(Spacer(1, 8))
+
+                        # Report sections
+                        section_titles = [
+                            ("1. Attack Summary",       report.get("summary","")),
+                            ("2. Observed Behavior",    report.get("behavior","")),
+                            ("3. MITRE ATT&CK Mapping", report.get("mitre_mapping","")),
+                            ("4. Recommended Actions",  report.get("recommended_actions","")),
+                        ]
+
+                        for sec_title, sec_content in section_titles:
+                            if not sec_content:
+                                sec_content = report.get("full_report","No content generated.")
+                            elements.append(Paragraph(sec_title, style_section))
+                            elements.append(HRFlowable(width="100%", thickness=0.5, color=HexColor("#cccccc")))
+                            elements.append(Spacer(1, 6))
+                            # Split into paragraphs
+                            for para in sec_content.strip().split("\n"):
+                                para = para.strip()
+                                if para:
+                                    # Escape special chars for reportlab
+                                    para = para.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+                                    elements.append(Paragraph(para, style_body))
+                            elements.append(Spacer(1, 8))
+
+                        # MITRE techniques table
+                        if mitre:
+                            elements.append(Paragraph("MITRE ATT&CK Techniques Retrieved", style_section))
+                            elements.append(HRFlowable(width="100%", thickness=0.5, color=HexColor("#cccccc")))
+                            elements.append(Spacer(1, 6))
+                            mitre_data = [["ID", "Technique", "Tactic", "Similarity"]]
+                            for t in mitre:
+                                mitre_data.append([
+                                    t["id"],
+                                    t["name"],
+                                    t["tactic"],
+                                    f"{t.get('similarity_score',0):.3f}"
+                                ])
+                            mitre_tbl = Table(mitre_data, colWidths=[0.9*inch, 2.5*inch, 1.5*inch, 0.9*inch])
+                            mitre_tbl.setStyle(TableStyle([
+                                ("BACKGROUND",    (0,0), (-1,0), ACCENT),
+                                ("TEXTCOLOR",     (0,0), (-1,0), HexColor("#ffffff")),
+                                ("FONTNAME",      (0,0), (-1,0), "Helvetica-Bold"),
+                                ("FONTSIZE",      (0,0), (-1,-1), 9),
+                                ("GRID",          (0,0), (-1,-1), 0.5, HexColor("#cccccc")),
+                                ("ROWBACKGROUNDS",(0,1), (-1,-1), [HexColor("#ffffff"), HexColor("#f0f4f8")]),
+                                ("ALIGN",         (0,0), (-1,-1), "CENTER"),
+                                ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+                                ("TOPPADDING",    (0,0), (-1,-1), 6),
+                                ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+                            ]))
+                            elements.append(mitre_tbl)
+                            elements.append(Spacer(1, 12))
+
+                        # Network flow log
+                        elements.append(Paragraph("Network Flow Log", style_section))
+                        elements.append(HRFlowable(width="100%", thickness=0.5, color=HexColor("#cccccc")))
+                        elements.append(Spacer(1, 6))
+                        log_text = parsed.get("text","No log data.")
+                        for line in log_text.split("\n"):
+                            line = line.strip()
+                            if line:
+                                line = line.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+                                elements.append(Paragraph(line, style_mono))
+                        elements.append(Spacer(1, 12))
+
+                        # Footer
+                        elements.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+                        elements.append(Spacer(1, 6))
+                        elements.append(Paragraph(
+                            "Generated by NetGuardAgent · LangGraph + MITRE ATT&CK + RAG · CS 6349.501 · UT Dallas",
+                            style_subtitle
+                        ))
+
+                        doc.build(elements)
+                        pdf_bytes = pdf_buf.getvalue()
+
+                        st.download_button(
+                            label="📑 Download as PDF",
+                            data=pdf_bytes,
+                            file_name=f"incident_report_{label.replace(' ','_')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                        )
+
+                    except Exception as e:
+                        st.error(f"PDF generation error: {e}")
 
             # ── Tab 2: MITRE ATT&CK ───────────────────────────────────────────
             with tab2:
